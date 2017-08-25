@@ -1,0 +1,96 @@
+#http://www.avrfreaks.net/sites/default/files/Makefile.txt
+TARGET=wlove
+#DEVICE=atmega328p
+DEVICE=atmega644
+F_CPU=12000000UL
+# Output format. (can be srec, ihex, binary)
+FORMAT = ihex
+SCR_DIR=./arduino
+CXX=avr-g++
+CCC=avr-gcc
+ASM=avr-as
+OBJCOPY = avr-objcopy
+AVRSIZE = avr-size
+
+INC_DIR=-I$(SCR_DIR) -I./arduino/avr/variants/standard
+
+SCR_C=$(wildcard $(SCR_DIR)/*.c)
+SCR_CPP=$(wildcard $(SCR_DIR)/*.cpp)
+SCR_ASM=$(wildcard $(SCR_DIR)/*.S)
+
+SCR_FILE=$(SCR_C) $(SCR_CPP) $(SCR_ASM)
+
+C_OBJ=$(patsubst $(SCR_DIR)/%.c, $(SCR_DIR)/obj/%.o, $(SCR_C))
+CPP_OBJ=$(patsubst $(SCR_DIR)/%.cpp, $(SCR_DIR)/obj/%.o, $(SCR_CPP))
+ASM_OBJ=$(patsubst $(SCR_DIR)/%.S, $(SCR_DIR)/asmobj/%.o, $(SCR_ASM))
+OBJ=$(ASM_OBJ) $(C_OBJ) $(CPP_OBJ)
+
+DEFS= -DF_CPU=$(F_CPU)
+#-Wl,–gc-sections: This tells the linker to skip unused code. If this option is omitted,
+# the entire Arduino core will be included in the final compiled program, leading to an excessively large program.
+
+#-ffunction-sections and -fdata-sections: These cause each function or data item to be placed in its own section 
+#of the compiled output. Without this option –gc-sections will not work.
+#-Wl,--gc-sections -Wl,--section-start=.siminfo=0x900000
+CFLAGS=-std=gnu99 -Os -ffunction-sections  -fdata-sections -mmcu=$(DEVICE) -fpermissive
+CPPFLAGS=-Os -ffunction-sections  -fdata-sections -mmcu=$(DEVICE) -fpermissive
+LIBS = -lm 
+
+all: prebuild clean build
+	@echo done!!
+
+clean:
+	rm $(SCR_DIR)/obj/* -f
+	rm $(SCR_DIR)/asmobj/* -f
+	rm $(SCR_DIR)/bin/* -f
+
+prebuild:
+	mkdir -p $(SCR_DIR)/obj
+	mkdir -p $(SCR_DIR)/asmobj
+	mkdir -p $(SCR_DIR)/bin
+
+build:	$(ASM_OBJ) $(C_OBJ) $(CPP_OBJ) $(SCR_DIR)/bin/$(TARGET).elf \
+		$(SCR_DIR)/bin/$(TARGET).hex $(SCR_DIR)/bin/$(TARGET).eep done
+
+$(SCR_DIR)/obj/%.o: $(SCR_DIR)/%.c
+	$(CCC) $(DEFS) $(INC_DIR) $(CFLAGS) -c $< -o $@
+
+$(SCR_DIR)/obj/%.o: $(SCR_DIR)/%.cpp
+	$(CXX) $(DEFS) $(INC_DIR) $(CPPFLAGS) -c $< -o $@
+
+$(SCR_DIR)/asmobj/%.o: $(SCR_DIR)/%.S
+	$(CCC) $(DEFS) $(INC_DIR) $(CFLAGS) -c $< -o $@
+
+# Link: create ELF output file from object files.
+.SECONDARY : $(SCR_DIR)/bin/$(TARGET).elf
+.PRECIOUS : $(OBJ)
+$(SCR_DIR)/bin/%.elf: $(OBJ)
+	@echo Linking...
+	$(CCC) $(OBJ) -o $(SCR_DIR)/bin/$(TARGET).elf $(CFLAGS) $(LIBS)
+
+# Create final output files (.hex, .eep) from ELF output file.
+$(SCR_DIR)/bin/%.hex: $(SCR_DIR)/bin/%.elf
+	@echo Create hex file...
+	$(OBJCOPY) -O $(FORMAT) -R .eeprom $< $@
+
+$(SCR_DIR)/bin/%.eep: $(SCR_DIR)/bin/%.elf
+	@echo Create eep file...
+	$(OBJCOPY) -j .eeprom --set-section-flags=.eeprom="alloc,load" \
+	--change-section-lma .eeprom=0 -O $(FORMAT) $< $@
+#Compile done
+HEXSIZE= $(AVRSIZE) --target=$(FORMAT) $(SCR_DIR)/bin/$(TARGET).hex
+ELFSIZE= $(AVRSIZE) -x -A $(SCR_DIR)/bin/$(TARGET).elf
+done:
+	@if [ -f $(SCR_DIR)/bin/$(TARGET).elf ];\
+		then echo;\
+		echo Hex file information; $(HEXSIZE);\
+		echo; echo elf file information; $(ELFSIZE);\
+	fi;
+
+test:
+	@echo SCR_CPP: $(SCR_CPP)
+	@echo ASM_OBJ: $(ASM_OBJ)
+	@echo C_OBJ: $(C_OBJ)
+	@echo CPP_OBJ: $(CPP_OBJ)
+
+#EOF
