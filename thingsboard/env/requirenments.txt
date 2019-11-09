@@ -1,0 +1,4 @@
+Flask
+paho-mqtt
+RPi.GPIO; platform_machine == 'armv7l'
+psutil
