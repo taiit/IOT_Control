@@ -3,6 +3,7 @@ import json
 import time
 import psutil
 import pdb
+from subprocess import call
 
 THINGSBOARD_HOST = '34.69.172.61'
 MQTT_PORT = 1884
@@ -56,6 +57,11 @@ def on_message(client, userdata, msg):
     elif data['method'] == 'getValue':
         data = {'getValue': True}
         client.publish(msg.topic.replace('request', 'response'), json.dumps(data), 1)
+    elif data.get('method', '') == 'rpc_control_server':
+        rpc_command_params = data.get('params', '')
+        if rpc_command_params == 'reboot_raspbeery_pi':
+            print('start reboot raspberry pi')
+            call("shutdown -h now", shell=True)
 
 def send_pi_performance():
     data = {}
