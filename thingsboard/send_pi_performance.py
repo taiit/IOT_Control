@@ -84,29 +84,46 @@ def send_pi_performance():
     #print("publish: ", json_data)
     client.publish('v1/devices/me/telemetry', json_data, 1)
 
+def on_disconnect(client, userdata, rc):
+    if rc != 0:
+        print("Unexpected disconnection.")
+
 
 #client = mqtt.Client(protocol=mqtt.MQTTv311)
 client = mqtt.Client()
 # Register connect callback
 client.on_connect = on_connect
+client.on_disconnect = on_disconnect
+
 # Registed publish message callback
 client.on_message = on_message
+
 # Set access token
 client.username_pw_set(ACCESS_TOKEN)
-# Connect to ThingsBoard using default MQTT port and 60 seconds keepalive interval
-client.connect(THINGSBOARD_HOST, MQTT_PORT, 60)
+while True:
+    # Connect to ThingsBoard using default MQTT port and 60 seconds keepalive interval
+    try:
+        print("Start connect")
+        client.connect(THINGSBOARD_HOST, MQTT_PORT, 60)
+    except ConnectionRefusedError:
+        print("ConnectionRefusedError")
+        time.sleep(30) # 30s
+    except Exception as e:
+        print("Error: " + str(e))
+        time.sleep(30) # 30s
+    else:
+        break
 
 try:
+    print("start client loop")
     client.loop_start()
-    
-
-    
     while(True):
         #if is_connected == True:
         send_pi_performance()
-        time.sleep(1)
+        time.sleep(1) # 1s
 
 except KeyboardInterrupt:
     #GPIO.cleanup()
+    #clean up
     pass
 
