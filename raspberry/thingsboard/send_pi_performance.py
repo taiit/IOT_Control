@@ -5,7 +5,8 @@ import psutil
 import pdb
 from subprocess import call
 
-THINGSBOARD_HOST = '34.69.172.61'
+#THINGSBOARD_HOST = '34.69.172.61'
+THINGSBOARD_HOST = 'localhost'
 MQTT_PORT = 1884
 ACCESS_TOKEN = 'tZ7q90oxzKorXFghVm77'
 
