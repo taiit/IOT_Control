@@ -35,3 +35,9 @@ curl --request PUT \
     --header "Authorization: Bearer eb9d4f2f-284b-43f2-94ff-c317bc751b82" \
     --data '{"lifecycle": "CONFIRMATION", "confirmationData": { "appId": "a39ff76e-3958-41b0-8fca-3dbd450c8223", "confirmationUrl": "https://4adc81416f2f.ngrok.io/" } } '
 1a1d87b8-7e0c-4ae9-9636-f59aefe5c010 38cba002-c0a3-47e1-ad39-388e50bd7ac1
+
+
+    username: "${SPRING_DATASOURCE_USERNAME:postgres}"
+    password: "${SPRING_DATASOURCE_PASSWORD:Code2Live}"
+
+    

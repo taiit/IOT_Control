@@ -7,7 +7,7 @@ from subprocess import call
 
 #THINGSBOARD_HOST = '34.69.172.61'
 THINGSBOARD_HOST = 'localhost'
-MQTT_PORT = 1884
+MQTT_PORT = 1883
 ACCESS_TOKEN = 'tZ7q90oxzKorXFghVm77'
 
 gpio_state = {7: False, 11: False, 12: False, 13: False, 15: False, 16: False, 18: False, 22: False, 29: False,
@@ -58,20 +58,27 @@ def on_message(client, userdata, msg):
     elif data['method'] == 'getValue':
         data = {'getValue': True}
         client.publish(msg.topic.replace('request', 'response'), json.dumps(data), 1)
-    elif data.get('method', '') == 'rpc_control_server':
-        rpc_command_params = data.get('params', '')
-        if rpc_command_params == 'reboot_raspbeery_pi':
+    elif data.get('method', '') == 'rpcCommand':
+        rpc_command_action = data['params']
+        print(rpc_command_action)
+        if rpc_command_action == '\"reboot\"':
             print('start reboot raspberry pi')
-            call("shutdown -h now", shell=True)
+            call("sudo reboot", shell=True)
+        elif rpc_command_action == '\"shutdown\"':
+            print('start shutdown raspberry pi')
+            call("sudo shutdown 0", shell=True)
+        # sudo vim /etc/sudoers.d/001_taihv
 
 def send_pi_performance():
     data = {}
   
     #pdb.set_trace()
     tempC = 0
-    if hasattr(psutil, 'sensors_temperatures'):
-        tempC = psutil.sensors_temperatures().get('cpu-thermal', [[0, 0]])[0][1]
-    
+    #if hasattr(psutil, 'sensors_temperatures'):
+    #    tempC = psutil.sensors_temperatures().get('cpu-thermal', [[0, 0]])[0][1]
+    tFile = open('/sys/class/thermal/thermal_zone0/temp')
+    temp = float(tFile.read())
+    tempC = temp/1000
     data['cpu_thermal'] = int(tempC)
     data['cpu_usage'] =  int(psutil.cpu_percent())
 
@@ -127,7 +134,7 @@ try:
     while(True):
         #if is_connected == True:
         send_pi_performance()
-        time.sleep(1) # 1s
+        time.sleep(10) # 1s
 
 except KeyboardInterrupt:
     #GPIO.cleanup()
